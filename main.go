@@ -55,10 +55,12 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		err := redisClient.Set(cacheKey, string(body), 0).Err()
-		if err != nil {
-			fmt.Println("Failed to cache response in Redis:", err)
-		}
+		go func() {
+			err := redisClient.Set(cacheKey, string(body), 0).Err()
+			if err != nil {
+				fmt.Println("Failed to cache response in Redis:", err)
+			}
+		}()
 	}
 
 	for key, values := range resp.Header {
