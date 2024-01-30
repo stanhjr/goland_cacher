@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+
+  go-api:
+    build:
+      context: .
+    image: go-app:latest
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    restart: always
+    #hardcode password
+    command: redis-server --appendonly yes --replica-read-only no --requirepass 8QQnjhHdnAj9ZgVpB5AZSDpZCHpLne
+    hostname: redis
+    ports:
+      - 6379:6379
