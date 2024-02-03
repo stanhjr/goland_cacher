@@ -1,11 +1,27 @@
 FROM openresty/openresty:latest
 
+RUN apt-get update && apt-get install -y cron
+
 COPY nginx/app.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY nginx/cache_script.lua /usr/share/nginx/html/cache_script.lua
-COPY nginx/cache_script.lua /usr/share/nginx/html/md_5.lua
 COPY nginx/invalidator.lua /usr/share/nginx/html/invalidator.lua
+COPY nginx/clear_cache.sh /usr/src/app/clear_cache.sh
+COPY nginx/cronjob /etc/cron.d/cronjob
+
+RUN touch /var/cache/collector.log
+
+RUN sed -i -e '$a\' /etc/cron.d/cronjob
+
+RUN chmod +x /usr/src/app/clear_cache.sh
+
+#ADD crontab /etc/cron.d/cronjob
+
+
+
+RUN chmod 0644 /etc/cron.d/cronjob
+RUN crontab /etc/cron.d/cronjob
+
 
 EXPOSE 80
 
-CMD ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]
+CMD ["/bin/sh", "-c", "/usr/local/openresty/bin/openresty -g 'daemon off;' & cron -f"]
 

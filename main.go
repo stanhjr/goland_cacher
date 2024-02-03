@@ -2,21 +2,15 @@
 package main
 
 import (
-	"back_office_cacher/services"
 	"back_office_cacher/utils"
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 )
-
-// Global variable to hold the Redis client instance.
-var redisClient *redis.Client
 
 // Prometheus metric definition for tracking total HTTP requests.
 var (
@@ -31,10 +25,6 @@ var (
 
 // Initialization function to set up the Redis client and register Prometheus metrics.
 func init() {
-	redisClient = redis.NewClient(&redis.Options{
-		Addr: os.Getenv("REDIS_ADDR"),
-		//Addr: "localhost:6379",
-	})
 	prometheus.MustRegister(httpRequestsTotal)
 }
 
@@ -43,32 +33,6 @@ func init() {
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	// Increment Prometheus metric for total HTTP requests.
 	httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path).Inc()
-
-	partnerID := r.Header.Get("Partner-Id")
-	authorization := r.Header.Get("Authorization")
-
-	// Check if authentication credentials are provided.
-	if partnerID == "" || authorization == "" {
-		utils.WriteJSONError(w, "Authentication credentials were not provided.", http.StatusUnauthorized)
-		return
-	}
-
-	// Create a CacheKeyService instance to generate cache keys based on request parameters.
-	cacheKeyService := services.NewCacheKeyService(partnerID, authorization, r.URL.Path)
-	cacheKey, err := cacheKeyService.GetCacheKey()
-	if err != nil {
-		utils.WriteJSONError(w, "Resource not found.", http.StatusNotFound)
-		return
-	}
-
-	// Attempt to retrieve the response from the cache.
-	cachedResponse, err := services.RetrieveFromCache(redisClient, cacheKey)
-
-	if err == nil {
-		utils.MakeHeaders(w, cachedResponse.Headers, cachedResponse.Status)
-		w.Write([]byte(cachedResponse.Body))
-		return
-	}
 
 	// Define the URL of the backend server to proxy requests to.
 	proxyURL := os.Getenv("PROXY_URL")
@@ -82,6 +46,8 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	r.URL.Host = proxy.Host
 	r.URL.Scheme = proxy.Scheme
 	r.Host = proxy.Host
+	fmt.Println("proxy.Host", proxy.Host)
+	fmt.Println("proxyURL", proxyURL)
 
 	// Make a request to the backend server.
 	resp, err := http.DefaultTransport.RoundTrip(r)
@@ -100,24 +66,6 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.WriteJSONError(w, "Failed to read response body.", http.StatusInternalServerError)
 		return
-	}
-
-	// Define the time-to-live (TTL) for caching the response.
-	keyTtl := 30 * time.Minute
-
-	// Cache the response only if the status code is not in the 5xx range.
-	if resp.StatusCode < 500 {
-		err := services.CacheResponse(
-			redisClient,
-			cacheKey,
-			resp,
-			string(body),
-			keyTtl,
-		)
-
-		if err != nil {
-			fmt.Println("Failed to cache response in Redis:", err)
-		}
 	}
 
 	utils.MakeHeaders(w, resp.Header, resp.StatusCode)
