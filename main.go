@@ -33,7 +33,6 @@ var (
 func init() {
 	redisClient = redis.NewClient(&redis.Options{
 		Addr: os.Getenv("REDIS_ADDR"),
-		//Addr: "localhost:6379",
 	})
 	prometheus.MustRegister(httpRequestsTotal)
 }
