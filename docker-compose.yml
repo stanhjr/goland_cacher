@@ -9,6 +9,8 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - go-api
 
   go-api:
     build:
