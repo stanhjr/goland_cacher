@@ -47,7 +47,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	r.URL.Scheme = proxy.Scheme
 	r.Host = proxy.Host
 	fmt.Println("proxy.Host", proxy.Host)
-	fmt.Println("proxyURL", proxyURL)
+	fmt.Println("proxyURL", r.URL)
 
 	// Make a request to the backend server.
 	resp, err := http.DefaultTransport.RoundTrip(r)

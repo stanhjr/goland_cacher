@@ -13,10 +13,6 @@ RUN sed -i -e '$a\' /etc/cron.d/cronjob
 
 RUN chmod +x /usr/src/app/clear_cache.sh
 
-#ADD crontab /etc/cron.d/cronjob
-
-
-
 RUN chmod 0644 /etc/cron.d/cronjob
 RUN crontab /etc/cron.d/cronjob
 
