@@ -132,7 +132,7 @@ func main() {
 	http.HandleFunc("/", proxyHandler)
 
 	// Define the port to listen on.
-	port := 8080
+	port := 8000
 
 	// Start the proxy server and log any errors.
 	fmt.Printf("Proxy server listening on :%d...\n", port)
